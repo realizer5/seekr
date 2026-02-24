@@ -1,0 +1,25 @@
+{
+    "name": "web-crawler",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "start": "tsx ./src/index.ts",
+        "test": "vitest run"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "packageManager": "pnpm@10.28.0",
+    "devDependencies": {
+        "@types/jsdom": "^28.0.0",
+        "@types/node": "^25.1.0",
+        "tsx": "^4.21.0",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18"
+    },
+    "dependencies": {
+        "jsdom": "^28.1.0"
+    }
+}
