@@ -107,6 +107,22 @@ function extractPageData(html: string, pageURL: string): ExtractedPageData {
     return { url, heading, first_paragraph, outgoing_links, image_urls };
 }
 
+async function getHTML(url: string) {
+    try {
+        const res = await fetch(url, {
+            headers: { Accept: "text/html", "User-Agent": "RealCrawler/1.0" },
+        });
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        const contentType = res.headers.get("content-type");
+        if (!contentType?.includes("text/html"))
+            throw new Error(`Expected HTML but got ${contentType}`);
+        return await res.text();
+    } catch (error) {
+        console.error(`Error getting HTML from ${url}`, error);
+        return null;
+    }
+}
+
 export {
     normalizeURL,
     getH1FromHTML,
@@ -114,4 +130,5 @@ export {
     getURLsFromHTML,
     getImagesFromHTML,
     extractPageData,
+    getHTML,
 };
