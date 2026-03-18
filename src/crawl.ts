@@ -123,6 +123,7 @@ async function getHTML(url: string) {
     }
 }
 
+
 export {
     normalizeURL,
     getH1FromHTML,

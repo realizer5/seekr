@@ -7,6 +7,8 @@ async function main() {
         console.info("Usage: npm run start <url>");
         process.exit(1);
     }
+    const foo = await crawlPage(argv[2]);
+    console.log(foo);
     process.exit(0);
 }
 
@@ -19,12 +21,20 @@ async function crawlPage(
 ) {
     if (!currentURL.startsWith(baseURL)) return pages;
     const normalizedCurrentURL = normalizeURL(currentURL);
-    pages[normalizedCurrentURL] = (pages[normalizedCurrentURL] ?? 0) + 1;
+    if (normalizedCurrentURL in pages) {
+        pages[normalizedCurrentURL]++;
+        return pages;
+    } else {
+        pages[normalizedCurrentURL] = 1;
+    }
     console.log(`Scraping html from ${currentURL}`);
     try {
         const html = await getHTML(currentURL);
         if (!html) throw new Error(`Error getting html`);
         const urls = getURLsFromHTML(html, baseURL);
+        for (const url of urls) {
+            await crawlPage(baseURL, (currentURL = url), pages);
+        }
         return pages;
     } catch (error) {
         console.error(error);
