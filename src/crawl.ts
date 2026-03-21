@@ -2,6 +2,15 @@ import { URL } from "node:url";
 import { JSDOM } from "jsdom";
 
 function normalizeURL(url: string): string {
+    const urlObj = new URL(url);
+    const result = urlObj.host + urlObj.pathname;
+    if (result.slice(-1) === "/") {
+        return result.slice(0, -1);
+    }
+    return result;
+}
+
+function removeTrailingSlash(url: string): string {
     try {
         const urlObj = new URL(url);
         const result = urlObj.href;
@@ -38,8 +47,10 @@ function getURLsFromHTML(html: string, baseURL: string): string[] {
     const linkElements = dom.window.document.querySelectorAll("a");
     for (const linkElement of linkElements) {
         try {
-            const urlObj = new URL(linkElement.href, baseURL);
-            const url = normalizeURL(urlObj.href);
+            const href = linkElement.getAttribute("href");
+            if (!href) continue;
+            const urlObj = new URL(href, baseURL);
+            const url = removeTrailingSlash(urlObj.href);
             if (urls.includes(url)) continue;
             urls.push(url);
         } catch (error) {
@@ -57,7 +68,7 @@ function getImagesFromHTML(html: string, baseURL: string): string[] {
         const src = imgElement.getAttribute("src");
         if (!src) continue;
         const urlObj = new URL(src, baseURL);
-        const url = normalizeURL(urlObj.href);
+        const url = removeTrailingSlash(urlObj.href);
         if (images.includes(url)) continue;
         images.push(url);
     }
@@ -75,22 +86,18 @@ export type ExtractedPageData = {
 function extractPageData(
     html: string,
     baseURL: string,
-    currentURL: string,
+    nromalizedURL: string,
 ): ExtractedPageData {
+    const url = nromalizedURL;
     const heading = getH1FromHTML(html);
     const first_paragraph = getFirstParagraphFromHTML(html);
     const outgoing_links = getURLsFromHTML(html, baseURL);
     const image_urls = getImagesFromHTML(html, baseURL);
-    return {
-        url: currentURL,
-        heading,
-        first_paragraph,
-        outgoing_links,
-        image_urls,
-    };
+    return { url, heading, first_paragraph, outgoing_links, image_urls };
 }
 export {
     normalizeURL,
+    removeTrailingSlash,
     getH1FromHTML,
     getFirstParagraphFromHTML,
     getURLsFromHTML,

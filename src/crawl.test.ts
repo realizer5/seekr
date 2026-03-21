@@ -5,6 +5,7 @@ import {
     getImagesFromHTML,
     getURLsFromHTML,
     normalizeURL,
+    removeTrailingSlash,
 } from "./crawl";
 import { expect, test } from "vitest";
 
@@ -19,6 +20,19 @@ test("normalizeURL strip protocol, trailing slash and capital letters", () => {
     const expected = "blog.boot.dev/path";
     links.forEach((link) => {
         const actual = normalizeURL(link);
+        expect(actual).toEqual(expected);
+    });
+});
+
+test("removeTrailingSlash trailing slash and capital letters", () => {
+    const links = [
+        "https://blog.boot.dev/path/",
+        "https://blog.boot.dev/path",
+        "https://blog.boot.dev/path/",
+    ];
+    const expected = "https://blog.boot.dev/path";
+    links.forEach((link) => {
+        const actual = removeTrailingSlash(link);
         expect(actual).toEqual(expected);
     });
 });
@@ -69,7 +83,7 @@ test("getURLsFromHTML absolute and relative", () => {
 
 test("getURLsFromHTML invalid", () => {
     const inputURL = "https://blog.boot.dev";
-    const inputBody = `<html><body><a href="invalid"><span>Boot.dev</span></a></body></html>`;
+    const inputBody = `<html><body><a href=""><span>Boot.dev</span></a></body></html>`;
     const expected: string[] = [];
     const actual = getURLsFromHTML(inputBody, inputURL);
     expect(actual).toEqual(expected);
@@ -93,7 +107,7 @@ test("getImagesFromHTML absolute and relative", () => {
 
 test("getImagesFromHTML invalid", () => {
     const inputURL = "https://blog.boot.dev";
-    const inputBody = `<html><body><img src="invalid"><span>Boot.dev</span></body></html>`;
+    const inputBody = `<html><body><img src=""><span>Boot.dev</span></body></html>`;
     const expected: string[] = [];
     const actual = getImagesFromHTML(inputBody, inputURL);
     expect(actual).toEqual(expected);
@@ -101,6 +115,7 @@ test("getImagesFromHTML invalid", () => {
 
 test("extractPageData basic", () => {
     const inputURL = "https://crawler-test.com";
+    const normalizedURL = normalizeURL(inputURL);
     const inputBody = `
     <html><body>
       <h1>Test Title</h1>
@@ -110,9 +125,9 @@ test("extractPageData basic", () => {
     </body></html>
   `;
 
-    const actual = extractPageData(inputBody, inputURL);
+    const actual = extractPageData(inputBody, inputURL, normalizedURL);
     const expected = {
-        url: "https://crawler-test.com",
+        url: "crawler-test.com",
         heading: "Test Title",
         first_paragraph: "This is the first paragraph.",
         outgoing_links: ["https://crawler-test.com/link1"],
@@ -124,6 +139,7 @@ test("extractPageData basic", () => {
 
 test("extractPageData with main p", () => {
     const inputURL = "https://crawler-test.com";
+    const normalizedURL = normalizeURL(inputURL);
     const inputBody = `
     <html><body>
       <h1>Test Title</h1>
@@ -134,9 +150,9 @@ test("extractPageData with main p", () => {
     </body></html>
   `;
 
-    const actual = extractPageData(inputBody, inputURL);
+    const actual = extractPageData(inputBody, inputURL, normalizedURL);
     const expected = {
-        url: "https://crawler-test.com",
+        url: "crawler-test.com",
         heading: "Test Title",
         first_paragraph: "Main paragraph",
         outgoing_links: ["https://crawler-test.com/link1"],
@@ -148,18 +164,19 @@ test("extractPageData with main p", () => {
 
 test("extractPageData invalid link", () => {
     const inputURL = "https://crawler-test.com";
+    const normalizedURL = normalizeURL(inputURL);
     const inputBody = `
     <html><body>
       <h1>Test Title</h1>
       <p>This is the first paragraph.</p>
-      <a href="invalid">Link 1</a>
-      <img src="invalid" alt="Image 1">
+      <a href="">Link 1</a>
+      <img src="" alt="Image 1">
     </body></html>
   `;
 
-    const actual = extractPageData(inputBody, inputURL);
+    const actual = extractPageData(inputBody, inputURL, normalizedURL);
     const expected = {
-        url: "https://crawler-test.com",
+        url: "crawler-test.com",
         heading: "Test Title",
         first_paragraph: "This is the first paragraph.",
         outgoing_links: [],

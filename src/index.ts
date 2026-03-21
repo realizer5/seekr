@@ -1,5 +1,10 @@
 import { argv } from "node:process";
-import { ExtractedPageData, extractPageData, normalizeURL } from "./crawl";
+import {
+    ExtractedPageData,
+    extractPageData,
+    normalizeURL,
+    removeTrailingSlash,
+} from "./crawl";
 import pLimit from "p-limit";
 import { writeJSONReport } from "./report";
 
@@ -77,7 +82,7 @@ async function main() {
     const maxPages = Number(argv[4]) || 10;
     console.time("crawl");
     try {
-        const url = normalizeURL(argv[2]);
+        const url = removeTrailingSlash(argv[2]);
         const pages = await crawlSiteAsync(url, maxConcurrency, maxPages);
         console.log("Finished crawling.");
         const firstPage = Object.values(pages)[0];
