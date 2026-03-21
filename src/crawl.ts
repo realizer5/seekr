@@ -2,12 +2,14 @@ import { URL } from "node:url";
 import { JSDOM } from "jsdom";
 
 function normalizeURL(url: string): string {
-    const urlObj = new URL(url);
-    const result = urlObj.host + urlObj.pathname;
-    if (result.slice(-1) === "/") {
-        return result.slice(0, -1);
+    try {
+        const urlObj = new URL(url);
+        const result = urlObj.href;
+        return result.endsWith("/") ? result.slice(0, -1) : result;
+    } catch (error) {
+        console.error(`Error normalizing URL ${url}`, error);
+        return "";
     }
-    return result;
 }
 
 function getH1FromHTML(html: string): string {
@@ -35,26 +37,13 @@ function getURLsFromHTML(html: string, baseURL: string): string[] {
     const dom = new JSDOM(html);
     const linkElements = dom.window.document.querySelectorAll("a");
     for (const linkElement of linkElements) {
-        if (linkElement.href.startsWith("/")) {
-            try {
-                const urlObj = new URL(baseURL + linkElement.href);
-                urls.push(urlObj.href);
-            } catch (error) {
-                if (error instanceof Error) {
-                    console.warn(`error with relative url: ${error.message}`);
-                }
-                console.warn(`error with relative url: ${error}`);
-            }
-        } else {
-            try {
-                const urlObj = new URL(linkElement.href);
-                urls.push(urlObj.href);
-            } catch (error) {
-                if (error instanceof Error) {
-                    console.warn(`error with absolute url: ${error.message}`);
-                }
-                console.warn(`error with absolute url: ${error}`);
-            }
+        try {
+            const urlObj = new URL(linkElement.href, baseURL);
+            const url = normalizeURL(urlObj.href);
+            if (urls.includes(url)) continue;
+            urls.push(url);
+        } catch (error) {
+            console.warn(`error with getting url: ${error}`);
         }
     }
     return urls;
@@ -65,32 +54,17 @@ function getImagesFromHTML(html: string, baseURL: string): string[] {
     const dom = new JSDOM(html);
     const imgElements = dom.window.document.querySelectorAll("img");
     for (const imgElement of imgElements) {
-        if (imgElement.src.startsWith("/")) {
-            try {
-                const urlObj = new URL(baseURL + imgElement.src);
-                images.push(urlObj.href);
-            } catch (error) {
-                if (error instanceof Error) {
-                    console.warn(`error with relative url: ${error.message}`);
-                }
-                console.warn(`error with relative url: ${error}`);
-            }
-        } else {
-            try {
-                const urlObj = new URL(imgElement.src);
-                images.push(urlObj.href);
-            } catch (error) {
-                if (error instanceof Error) {
-                    console.warn(`error with absolute url: ${error.message}`);
-                }
-                console.warn(`error with absolute url: ${error}`);
-            }
-        }
+        const src = imgElement.getAttribute("src");
+        if (!src) continue;
+        const urlObj = new URL(src, baseURL);
+        const url = normalizeURL(urlObj.href);
+        if (images.includes(url)) continue;
+        images.push(url);
     }
     return images;
 }
 
-type ExtractedPageData = {
+export type ExtractedPageData = {
     url: string;
     heading: string;
     first_paragraph: string;
@@ -98,32 +72,23 @@ type ExtractedPageData = {
     image_urls: string[];
 };
 
-function extractPageData(html: string, pageURL: string): ExtractedPageData {
-    const url = pageURL;
+function extractPageData(
+    html: string,
+    baseURL: string,
+    currentURL: string,
+): ExtractedPageData {
     const heading = getH1FromHTML(html);
     const first_paragraph = getFirstParagraphFromHTML(html);
-    const outgoing_links = getURLsFromHTML(html, url);
-    const image_urls = getImagesFromHTML(html, url);
-    return { url, heading, first_paragraph, outgoing_links, image_urls };
+    const outgoing_links = getURLsFromHTML(html, baseURL);
+    const image_urls = getImagesFromHTML(html, baseURL);
+    return {
+        url: currentURL,
+        heading,
+        first_paragraph,
+        outgoing_links,
+        image_urls,
+    };
 }
-
-async function getHTML(url: string) {
-    try {
-        const res = await fetch(url, {
-            headers: { Accept: "text/html", "User-Agent": "RealCrawler/1.0" },
-        });
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        const contentType = res.headers.get("content-type");
-        if (!contentType?.includes("text/html"))
-            throw new Error(`Expected HTML but got ${contentType}`);
-        return await res.text();
-    } catch (error) {
-        console.error(`Error getting HTML from ${url}`, error);
-        return null;
-    }
-}
-
-
 export {
     normalizeURL,
     getH1FromHTML,
@@ -131,5 +96,4 @@ export {
     getURLsFromHTML,
     getImagesFromHTML,
     extractPageData,
-    getHTML,
 };
