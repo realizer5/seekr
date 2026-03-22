@@ -48,7 +48,7 @@ function getURLsFromHTML(html: string, baseURL: string): string[] {
     for (const linkElement of linkElements) {
         try {
             const href = linkElement.getAttribute("href");
-            if (!href) continue;
+            if (!href || href === "javascript:void(0)") continue;
             const urlObj = new URL(href, baseURL);
             const url = removeTrailingSlash(urlObj.href);
             if (urls.includes(url)) continue;
