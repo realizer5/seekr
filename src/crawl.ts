@@ -23,7 +23,9 @@ function removeTrailingSlash(url: string): string {
 
 function getH1FromHTML(html: string): string {
     const dom = new JSDOM(html);
-    const headingText = dom.window.document.querySelector("h1")?.textContent;
+    const headingText = dom.window.document
+        .querySelector("h1")
+        ?.textContent.trim();
     if (headingText) {
         return headingText;
     }
@@ -32,11 +34,14 @@ function getH1FromHTML(html: string): string {
 
 function getFirstParagraphFromHTML(html: string): string {
     const dom = new JSDOM(html);
-    const paraText =
-        dom.window.document.querySelector("main p")?.textContent ??
-        dom.window.document.querySelector("p")?.textContent;
-    if (paraText) {
-        return paraText;
+    const container =
+        dom.window.document.querySelector("main") ??
+        dom.window.document.querySelector("body");
+    const paragraphs = container?.querySelectorAll("p") ?? [];
+    for (const p of paragraphs) {
+        p.querySelectorAll("style, script").forEach((el) => el.remove());
+        const text = p.textContent.trim();
+        if (text) return text;
     }
     return "";
 }
