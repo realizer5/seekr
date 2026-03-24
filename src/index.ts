@@ -78,8 +78,8 @@ async function main() {
         console.info("usage: npm run start <URL> <maxConcurrency> <maxPages>");
         process.exit(1);
     }
-    const maxConcurrency = Number(argv[3]) || 3;
-    const maxPages = Number(argv[4]) || 10;
+    const maxConcurrency = Number(argv[3]) || 5;
+    const maxPages = Number(argv[4]) || 50;
     console.time("crawl");
     try {
         const url = removeTrailingSlash(argv[2]);
@@ -92,8 +92,12 @@ async function main() {
             );
         }
         writeJSONReport(pages, "report.json");
-    } catch (err) {
-        console.error("Crawler failed:", err);
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error("Crawler failed: ", error.message);
+        } else {
+            console.error("Crawler failed: ", error);
+        }
         process.exit(1);
     }
     console.timeEnd("crawl");

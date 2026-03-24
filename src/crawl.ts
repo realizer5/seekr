@@ -16,7 +16,17 @@ function removeTrailingSlash(url: string): string {
         const result = urlObj.href;
         return result.endsWith("/") ? result.slice(0, -1) : result;
     } catch (error) {
-        console.error(`Error normalizing URL ${url}`, error);
+        if (error instanceof Error) {
+            console.error(
+                `Error removing trailing slash in URL: ${url}`,
+                error.message,
+            );
+        } else {
+            console.error(
+                `Error removing trailing slash in URL: ${url}`,
+                error,
+            );
+        }
         return "";
     }
 }
@@ -34,16 +44,19 @@ function getH1FromHTML(html: string): string {
 
 function getFirstParagraphFromHTML(html: string): string {
     const dom = new JSDOM(html);
-    const container =
-        dom.window.document.querySelector("main") ??
-        dom.window.document.querySelector("body");
-    const paragraphs = container?.querySelectorAll("p") ?? [];
-    for (const p of paragraphs) {
-        p.querySelectorAll("style, script").forEach((el) => el.remove());
-        const text = p.textContent.trim();
-        if (text) return text;
-    }
-    return "";
+    const getFirstValidParagraph = (container: Element | null): string => {
+        if (!container) return "";
+        for (const p of container.querySelectorAll("p")) {
+            p.querySelectorAll("style, script").forEach((el) => el.remove());
+            const text = p.textContent?.trim();
+            if (text) return text;
+            p.remove();
+        }
+        return "";
+    };
+    const main = dom.window.document.querySelector("main");
+    const body = dom.window.document.querySelector("body");
+    return getFirstValidParagraph(main) || getFirstValidParagraph(body);
 }
 
 function getURLsFromHTML(html: string, baseURL: string): string[] {
@@ -53,7 +66,7 @@ function getURLsFromHTML(html: string, baseURL: string): string[] {
     for (const linkElement of linkElements) {
         try {
             const href = linkElement.getAttribute("href");
-            if (!href || href === "javascript:void(0)") continue;
+            if (!href || href.startsWith("javascript:")) continue;
             const urlObj = new URL(href, baseURL);
             const url = removeTrailingSlash(urlObj.href);
             if (urls.includes(url)) continue;
@@ -91,9 +104,9 @@ export type ExtractedPageData = {
 function extractPageData(
     html: string,
     baseURL: string,
-    nromalizedURL: string,
+    currentURl: string,
 ): ExtractedPageData {
-    const url = nromalizedURL;
+    const url = currentURl;
     const heading = getH1FromHTML(html);
     const first_paragraph = getFirstParagraphFromHTML(html);
     const outgoing_links = getURLsFromHTML(html, baseURL);
